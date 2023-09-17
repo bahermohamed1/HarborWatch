@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="./style.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+  <script src="functions.js"></script>
+</head>
+<body>
+  <div>
+    <div class="home-container">
+      <div class="home-container1">
+        <div class="home-container2">
+          <input type="text" id="ship-speed1" placeholder="Ship speed (km/h)" class="home-textinput input"/>
+          <select id="lock-select1" onchange="locateGate('lock-select1')" class="home-select">
+            <option value="pedroMiguel"selected >Pedro Miguel Locks</option>
+            <option value="gatun">Gatun Locks</option>
+            <option value="miraflores">Miraflores Locks</option>
+          </select>
+          <h1 class="home-text">First Ship Details</h1>
+          <button type="button" id="assign-button1" onclick="submitShip(1)" class="home-button button">submit</button>
+        </div>
+        <div class="home-container3">
+          <input type="text" id="ship-speed2" placeholder="Ship speed (km/h)" class="home-textinput1 input" disabled />
+          <select id="lock-select2" onchange="locateGate('lock-select2')" class="home-select1"disabled >
+            <option value="pedroMiguel"selected>Pedro Miguel Locks</option>
+            <option value="gatun">Gatun Locks</option>
+            <option value="miraflores">Miraflores Locks</option>
+          </select>
+          <h1 class="home-text1">Second Ship Details</h1>
+          <button type="button" id="assign-button2" onclick="submitShip(2)" disabled class="home-button1 button">submit</button>
+        </div>
+        <div class="home-container4">
+          <input type="text" id="ship-speed3" placeholder="Ship speed (km/h)" class="home-textinput2 input" disabled />
+          <select id="lock-select3" onchange="locateGate('lock-select3')" class="home-select2"disabled >
+            <option value="pedroMiguel"selected>Pedro Miguel Locks</option>
+            <option value="gatun">Gatun Locks</option>
+            <option value="miraflores">Miraflores Locks</option>
+          </select>
+          <h1 class="home-text2">Third Ship Details</h1>
+          <button type="button" id="assign-button3" onclick="submitShip(3)" disabled class="home-button2 button">submit</button>
+        </div>
+      </div>
+      <button type="button" onclick="runSimulation()" class="home-button3 button">Start Simulation</button>
+      <div class="home-cont">
+        <div id="map" style="width: 100%; height: 500px;"></div>
+      </div>
+      <span class="home-text3">Baher Mohamed</span>
+      <h1 class="home-text4">PANAMA CANAL MAP</h1>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script>
+    const {ipcRenderer} = require('electron')
+    var map = L.map('map').setView([9.01826, -79.61416], 16); // Set the initial center and zoom level
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+        maxZoom: 18,
+    }).addTo(map);
+
+    class Ship {constructor(id, speed, lat, lon, destination, comingFrom, selectedLock, lockChambers) {
+        this.id = id;
+        this.speed = speed; //km/h.
+        this.lon = lon;
+        this.lat = lat;
+        this.destination = destination;
+        this.stopped = false;
+        this.comingFrom = comingFrom;
+        this.selectedLock = selectedLock;
+        this.lockChambers = lockChambers; //HOW MANY CHAMBERS FOR THIS LOCK.
+        this.waitUntilGateOpen = 0;
+
+        this.bearing; 
+        this.distance;
+    }
+}
+
+    let ships = [];
+    let clickCount = 0;
+    let coordinates = [];
+    const locksCoordinates = {
+      pedroMiguel: {
+            atlantic: [[9.01798, -79.61348], [9.01592, -79.61113], [9.00817,-79.60225]],
+            pacific: [[9.01557, -79.61147], [9.01764, -79.61379], [9.02798,-79.62957]]
+        },
+        miraflores: {
+            atlantic: [[8.999, -79.59364],[8.99686, -79.59155],[8.99438, -79.58913], [8.98987, -79.58475]],
+	          pacific: [[8.99405, -79.58945],[8.99653, -79.59188],[8.99869, -79.59398], [9.00317, -79.59826]]
+        },    
+        gatun: {
+            atlantic: [[9.27772,-79.92203],[9.27506,-79.92244],[9.27192,-79.92287], [9.26043,-79.92401]],
+            pacific: [[9.27081, -79.9235],[9.27383, -79.92305],[9.27693, -79.92267], [9.28873, -79.92145]]
+        }
+};
+    function registerShips(e) {
+        let colors = ['red', 'blue', 'green']
+        if (clickCount >= 3) {alert("You already assigned the three spawn points for the ships."); return;}
+        clickCount++;
+        coordinates[clickCount-1] = e.latlng;
+        L.rectangle([[coordinates[clickCount-1].lat, coordinates[clickCount-1].lng], [coordinates[clickCount-1].lat, coordinates[clickCount-1].lng]], { color: colors[clickCount-1], opacity: 0.7, weight: 8 }).addTo(map);
+    }
+    map.on('click', registerShips);
+
+    function submitShip(shipNo) {
+        shipNom = shipNo;
+        let chambers;
+        let shipSpeed = document.getElementById(`ship-speed` + shipNo).value; //get the shipSpeed from the input but add 1 2 or 3 to get the correct variable name. 
+        let selectedLock = document.getElementById(`lock-select` + shipNo).value;
+        console.log(locksCoordinates[selectedLock].atlantic[0])
+        let aheadOrBehind = selectedLock == 'gatun' ?  checkPositionRelativeToReference(coordinates[shipNo-1].lat, coordinates[shipNo-1].lng, locksCoordinates[selectedLock].atlantic[0][0] ,locksCoordinates[selectedLock].atlantic[0][1], "lat") : checkPositionRelativeToReference(coordinates[shipNo-1].lat, coordinates[shipNo-1].lng, locksCoordinates[selectedLock].atlantic[0][0] ,locksCoordinates[selectedLock].atlantic[0][1], "lng"); //CHECK WHETHER POINT SELECTED IS GOING IN OR OUT OF THE GATE.
+        if (aheadOrBehind)
+        console.log(aheadOrBehind)
+        let destination = locksCoordinates[selectedLock][aheadOrBehind][0];
+        if (!shipSpeed) {alert("Missing information, pelase fill in all the blanks and select a location to spawn the ship."); return;}
+        if (!coordinates[shipNo-1]) {alert(`Please choose a spawn point for ship ${shipNo}: `); return;}
+        if (selectedLock == 'pedroMiguel') {chambers = 1;}
+        else if (selectedLock == 'gatun') {chambers = 2;}
+        else if (selectedLock == 'miraflores') {chambers = 2;}
+        ships.push(new Ship(shipNo, shipSpeed, coordinates[shipNo-1].lat, coordinates[shipNo-1].lng , destination, aheadOrBehind, selectedLock, chambers))
+        if (shipNo == 1) {
+            document.getElementById('ship-speed2').disabled = false;
+            document.getElementById('lock-select2').disabled = false;
+            document.getElementById('assign-button2').disabled = false;}
+        else if (shipNo == 2) {
+            document.getElementById('ship-speed3').disabled = false;
+            document.getElementById('ship-speed3').focus();
+            document.getElementById('lock-select3').disabled = false;
+            document.getElementById('assign-button3').disabled = false;
+        }
+        alert(`🟢 Successfully spawned ship ${shipNo}.`)
+        document.getElementById('ship-speed2').focus();
+    }
+
+    let mapView = [9.01826, -79.61416];
+    function locateGate(id) {
+      var dropdown = document.getElementById(id);
+      console.log(dropdown)
+      var selectedValue = dropdown.value;
+      // Call the locatePoint function based on the selected option
+      switch (selectedValue) {
+        case "pedroMiguel":
+          // Set the map view to the selected location
+          map.setView([9.01826, -79.61416], 16);
+          mapView = [9.01826, -79.61416];
+          console.log(mapView)
+        break;
+        case "gatun":
+          map.setView([9.26959, -79.9235], 16);
+          mapView = [9.26959, -79.9235];
+          console.log(mapView)
+        break;
+        case "miraflores":
+          map.setView([8.99662, -79.59162], 16);
+          mapView = [8.99662, -79.59162];
+          console.log(mapView)
+        break;
+      }
+}
+
+    function runSimulation() {
+        localStorage.setItem('shipArray', JSON.stringify(ships));
+        localStorage.setItem('mapView',JSON.stringify(mapView));
+        ipcRenderer.send("finalizedParameters", ships);
+    }
+  </script>
+</body>
+</html>
