@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <link href="./style.css" rel="stylesheet" />
+   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+   <script src="functions.js"></script>
+   <style>
+       #map {
+           height: 500px;
+       }
+   </style>
+</head>
+<body>
+    <div>
+        <link href="./page.css" rel="stylesheet" />
+        <div class="page-container">
+          <div class="page-container1">
+            <img id="radar2"
+              alt="image" 
+              src="file:///C:/Users/samho/OneDrive/Desktop/WRO/items/radarInactive.png"
+              class="page-image" 
+            />
+            <label class="page-text">Control Signal </label>
+            <label class="page-text01">Speed</label>
+            <label class="page-text02">Bearing</label>
+            <label class="page-text03">Coordinates</label>
+            <label class="page-text04">Ship Radar System</label>
+            <img id="green1"
+            src="file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"
+            alt="image"
+            class="page-green1"
+          />
+          <img id="yellow1"
+            src="file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"
+            alt="image"
+            class="page-yellow1"
+          />
+          <img id="red1"
+            src="file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"
+            alt="image"
+            class="page-red1"
+          />
+          <span id="ship1.speed" class="page-speed1">not set</span>
+          <span id="ship1.bearing" class="page-bearing1">not set</span>
+          <span id="ship1.coor"class="page-coor1">not set</span>
+          </div>
+          <div class="page-container2">
+            <img
+              alt="image" id="radar1"
+              src="file:///C:/Users/samho/OneDrive/Desktop/WRO/items/radarInactive.png"
+              class="page-image1"
+            />
+            <label class="page-text05">Control Signal </label>
+            <label class="page-text06">Speed</label>
+            <label class="page-text07">Bearing</label>
+            <label class="page-text08">Coordinates</label>
+            <label class="page-text09">Ship Radar System</label>
+            <img id="green2"
+            src="file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"
+            alt="image"
+            class="page-green2"
+          />
+          <img id="yellow2"
+            src="file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"
+            alt="image"
+            class="page-yellow2"
+          />
+          <img id="red2"
+            src="file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"
+            alt="image"
+            class="page-red2"
+          />
+          <span id="ship2.speed" class="page-speed2">not set</span>
+          <span id="ship2.bearing" class="page-bearing2">not set</span>
+          <span id="ship2.coor" class="page-coor2">not set</span>
+          </div>
+          <div class="page-container3">
+            <img id="radar3"
+              alt="image"
+              src="file:///C:/Users/samho/OneDrive/Desktop/WRO/items/radarInactive.png"
+              class="page-image2"
+            />
+            <label class="page-text10">Control Signal </label>
+            <label class="page-text11">Speed</label>
+            <label class="page-text12">Bearing</label>
+            <label class="page-text13">Coordinates</label>
+            <label class="page-text14">Ship Radar System</label>
+            <img id="green3"
+            src="file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"
+            alt="image"
+            class="page-green3"
+          />
+          <img id="yellow3"
+            src="file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"
+            alt="image"
+            class="page-yellow3"
+          />
+          <img id="red3"
+            src="file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"
+            alt="image"
+            class="page-red3"
+          />
+          <span id="ship3.speed" class="page-speed3">not set</span>
+          <span id="ship3.bearing" class="page-bearing3">not set</span>
+          <span id="ship3.coor" class="page-coor3">not set</span>
+          </div>
+        </div>
+      </div>
+      
+   <div id="map" class="page-map-cont"></div>></div>
+   <script>
+
+const mapView = JSON.parse(localStorage.getItem('mapView'));
+
+var map = L.map("map").setView([parseFloat(mapView[0]), parseFloat(mapView[1])], 16); // Set the initial center and zoom level
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+    maxZoom: 18,
+}).addTo(map);
+
+
+const lockSignals = {
+  pedroMiguel: {
+    atlantic: [[0],[0]],
+    pacific: [[0], [0]],
+    atlantic_ClosedBy: undefined, //must be undefined which means, no ship has passed ever still , null means a ship has passed but no ship is locking right now and a number means a ship is locking.
+    pacific_ClosedBy: undefined,
+  },
+    miraflores: {
+    atlantic: [[0],[0],[0]],
+	pacific: [[0],[0],[0]],
+    atlantic_ClosedBy: undefined,
+    pacific_ClosedBy: undefined,
+  },
+  gatun: {
+    atlantic: [[0],[0],[0]],
+    pacific: [[0],[0],[0]],
+    atlantic_ClosedBy: undefined,
+    pacific_ClosedBy: undefined,
+  }
+};
+
+const locksCoordinates = {
+    pedroMiguel: {
+            atlantic: [[9.01798, -79.61348], [9.01592, -79.61113], [9.00817,-79.60225]],
+            pacific: [[9.01557, -79.61147], [9.01764, -79.61379], [9.02798,-79.62957]]
+        },
+        miraflores: {
+            atlantic: [[8.999, -79.59364],[8.99686, -79.59155],[8.99438, -79.58913], [8.98987, -79.58475]],
+	        pacific: [[8.99405, -79.58945],[8.99653, -79.59188],[8.99869, -79.59398], [9.00317, -79.59826]]
+        },
+        gatun: {
+            atlantic: [[9.27081, -79.9235],[9.27383, -79.92305],[9.27693, -79.92267], [9.28873, -79.92145]],
+            pacific: [[9.27772,-79.92203],[9.27506,-79.92244],[9.27192,-79.92287], [9.26043,-79.92401]]
+        }
+};
+const lockStopCoordinates = {
+  pedroMiguel: {
+    atlantic: [9.0212, -79.6169],
+    pacific: [9.0126, -79.6082]
+  },
+    miraflores: {
+    atlantic: [9.0024, -79.5968],
+	pacific: [8.9913, -79.5867]
+  },
+  gatun: {
+    atlantic: [9.2817, -79.9212],
+    pacific: [9.2652, -79.9246]
+  }
+};
+
+let gateReplay1 = 1 ; let gateReplay2 = 1; let gateReplay3 = 1;
+
+let newCoord; let newCoord2; let newCoord3;
+const ships = JSON.parse(localStorage.getItem('shipArray'));
+let safeDistance = 0.45;
+const previousRectangles = [];
+
+let shipWasDetected1 = false; let shipWasDetected2 = false; let shipWasDetected3 = false; //A VARIABLE THAT WILL BECOME TRUE, IF THE SHIP WAS SLOWED DOWN DUE TO ANOTHER SHIP DETECTED IN RADAR.
+let locksArrived1; let locksArrived2; let locksArrived3; 
+let initialSpeed1; let initialSpeed2; let initialSpeed3; //STORE THE INITIAL SHIP SPEED THAT IT BEGAN WITH.
+if (ships[0]) {var previousRectangle = L.rectangle([[ships[0].lat, ships[0].lon], [ships[0].lat, ships[0].lon]], { color: 'red', opacity: 0.7, weight: 8 }).addTo(map); initialSpeed1= ships[0].speed; locksArrived1 = ships[0].lockChambers; document.getElementById("ship1.speed").textContent = ships[0].speed + "km/h"; document.getElementById("ship1.bearing").textContent = ships[0].bearing +"°"; document.getElementById("ship1.coor").textContent = `${ships[0].lat+ "°"}, ${ships[0].lon+ "°"}`; document.getElementById("green1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/greenOn.png"}
+if (ships[1]) {var previousRectangle2 = L.rectangle([[ships[1].lat, ships[1].lon], [ships[1].lat, ships[1].lon]], { color: 'blue', opacity: 0.7, weight: 8 }).addTo(map); initialSpeed2 = ships[1].speed; locksArrived2 = ships[1].lockChambers; document.getElementById("ship2.speed").textContent = ships[1].speed + "km/h"; document.getElementById("ship2.bearing").textContent = ships[1].bearing + "°"; document.getElementById("ship2.coor").textContent = `${ships[1].lat+ "°"}, ${ships[1].lon+ "°"}`; document.getElementById("green2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/greenOn.png"}
+if (ships[2]) {var previousRectangle3 = L.rectangle([[ships[2].lat, ships[2].lon], [ships[2].lat, ships[2].lon]], { color: 'blue', opacity: 0.7, weight: 8 }).addTo(map); initialSpeed3 = ships[2].speed; locksArrived3 = ships[2].lockChambers; document.getElementById("ship3.speed").textContent = ships[2].speed + "km/h"; document.getElementById("ship3.bearing").textContent = ships[2].bearing + "°"; document.getElementById("ship3.coor").textContent = `${ships[2].lat+ "°"}, ${ships[2].lon+ "°"}`; document.getElementById("green3").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/greenOn.png"}
+
+class TrafficControlSystem {
+    constructor(updateFrequency) {
+        this.ships = [];
+        this.updateFrequency = updateFrequency;
+        this.intervalId = null;
+    }
+    
+    addShip(ship) { this.ships.push(ship); } // Add a ship to the system} 
+    removeShip(ship) { // Remove a ship from the system
+        const index = this.ships.indexOf(ship);
+        if (index !== -1) {
+            this.ships.splice(index, 1);
+        }
+    }
+    start() {
+        this.intervalId = setInterval(() => {
+            this.manageShipMovements();
+        }, 1000 / this.updateFrequency);
+    }
+    stop() {
+        clearInterval(this.intervalId);
+        this.intervalId = null;
+    }
+    manageShipMovements() {// Update the positions of all ships in the system
+        for (const ship of this.ships) {
+            //-----------------------------------------UPDATE THE SHIP POSITIONS-----------------------------------------------------
+            if (ships[0]) { //UPDATE COORDINATES FOR SHIP ONLY IF IT WAS REGISTERED BY USER.
+                ships[0].bearing = calculateBearing(ships[0].lat, ships[0].lon, ships[0].destination[0], ships[0].destination[1]);
+                ships[0].distance = calculateDistance(ships[0].lat, ships[0].lon, ships[0].destination[0], ships[0].destination[1]);
+
+                newCoord = calculateNewCoordinates(ships[0].lat, ships[0].lon, ships[0].bearing, ships[0].speed * (1/3600));
+                ships[0].lat = newCoord[0]; ships[0].lon = newCoord[1];
+                document.getElementById("ship1.speed").textContent = ships[0].speed + "km/h"; //UPDATE THE VALUES ON THE SCREEN.
+                document.getElementById("ship1.bearing").textContent = ships[0].bearing + "°"; //UPDATE THE VALUES ON THE SCREEN.
+                document.getElementById("ship1.coor").textContent = `${ships[0].lat+ "°"}, ${ships[0].lon+ "°"}`; //UPDATE THE VALUES ON THE SCREEN.
+            }
+            if (ships[1]) {
+                ships[1].bearing = calculateBearing(ships[1].lat, ships[1].lon, ships[1].destination[0], ships[1].destination[1]);
+                ships[1].distance = calculateDistance(ships[1].lat, ships[1].lon, ships[1].destination[0], ships[1].destination[1]); 
+                
+                newCoord2 = calculateNewCoordinates(ships[1].lat, ships[1].lon, ships[1].bearing, ships[1].speed * (1/3600));
+                ships[1].lat = newCoord2[0]; ships[1].lon = newCoord2[1];
+                document.getElementById("ship2.speed").textContent = ships[1].speed + "km/h"; //UPDATE THE VALUES ON THE SCREEN.
+                document.getElementById("ship2.bearing").textContent = ships[1].bearing + "°"; //UPDATE THE VALUES ON THE SCREEN.
+                document.getElementById("ship2.coor").textContent = `${ships[1].lat+ "°"}, ${ships[1].lon+ "°"}`; //UPDATE THE VALUES ON THE SCREEN.
+            }
+            if (ships[2]) { 
+                ships[2].bearing = calculateBearing(ships[2].lat, ships[2].lon, ships[2].destination[0], ships[2].destination[1]);
+                ships[2].distance = calculateDistance(ships[2].lat, ships[2].lon, ships[2].destination[0], ships[2].destination[1]);
+                
+                newCoord3 = calculateNewCoordinates(ships[2].lat, ships[2].lon, ships[2].bearing, ships[2].speed * (1/3600));
+                ships[2].lat = newCoord3[0]; ships[2].lon = newCoord3[1];
+                document.getElementById("ship3.speed").textContent = ships[2].speed +"km/h"; //UPDATE THE VALUES ON THE SCREEN.
+                document.getElementById("ship3.bearing").textContent = ships[2].bearing + "°"; //UPDATE THE VALUES ON THE SCREEN.
+                document.getElementById("ship3.coor").textContent = `${ships[2].lat+ "°"}, ${ships[2].lon+ "°"}`; //UPDATE THE VALUES ON THE SCREEN.
+            }
+            //-----------------------------------------UPDATE THE SHIP POSITIONS-----------------------------------------------------
+
+            //-----------------------------------------SHIP (1) MOVEMENT & CONTROL---------------------------------------------------
+            if (ships[0]) { //CONTROL SHIP ONLY IF IT WAS REGISTERED BY USER.
+                if (ships[0].stopped == false) { //IF THE SHIP STILL DID NOT ARRIVE.
+                    
+                    //CREATE SHIP RADAR: DETECT SHIPS AHEAD.
+                    let radarCoordinates = calculateDestinationCoordinates(ships[0].lat, ships[0].lon, ships[0].bearing, 0);
+                    let shipDetected = isObjectInRadar(ships[1] ? ships[1] : null, ships[2] ? ships[2] : null, radarCoordinates[0], radarCoordinates[1], 0.5);
+                    if (shipDetected) {//IF A SHIP IS DETECTED IN THE RADAR.
+                        //START THE DECELERATION PROCESS.
+                        document.getElementById("radar1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/radarActive.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("red1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("yellow1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/yellowOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("green1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        console.log(shipDetected)
+                        console.log("Ship in Ship 1's radar.")
+                        shipWasDetected1 = true;
+
+                        if (ships[0].comingFrom == shipDetected.comingFrom) {
+                            let collisionDistance = calculateDistance(ships[0].lat, ships[0].lon, shipDetected.lat, shipDetected.lon);
+                            let collisionTime = collisionDistance / (ships[0].speed * (1/3600));
+                            let targetSpeed = shipDetected.speed;
+                            if (parseFloat(ships[0].speed) > parseFloat(targetSpeed)) {//COMPARE THE SPEEDS FOR BOTH, AIM FOR LOWERING THE SHIP BEHIND TO BE LOWER THAN THE ONE IN FRONT.
+                                decelerateShip(ships[0], targetSpeed, collisionTime/2);
+                                console.log("Ship 1 decelerated with radar. Speed: ", ships[0].speed)}
+                        }
+                    }
+
+                    //SLOW DOWN SHIP WHEN GOING THROUGH THE GATE.
+                    let arrivalStatus = calculateDistance(ships[0].lat, ships[0].lon, lockStopCoordinates[ships[0].selectedLock][ships[0].comingFrom][0], lockStopCoordinates[ships[0].selectedLock][ships[0].comingFrom][1]);
+                    if (arrivalStatus < 0.3) {
+                        decelerateShip(ships[0], 10, 60);
+                        console.log("Decelerated ship at gate arrival. Speed:", ships[0].speed);
+                        document.getElementById("yellow1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/yellowOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("red1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("green1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                    }
+
+                    //ACCELERATE AFTER SHIP IF NOT ON RADAR ANYMORE.
+                    if ((shipWasDetected1) && (shipDetected == false) && (ships[0].comingFrom == shipDetected.comingFrom)) {
+                        accelerateShip(ships[0], initialSpeed1, 40)
+                        console.log("Ship 1 accelerated on clear radar. Speed: ", ships[0].speed);
+                        document.getElementById("radar1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/radarInactive.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("yellow1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("red1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("green1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/greenOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                    }                    
+
+                    //PASSAGE AND STOPPAGE BEFORE ENTERING GATE, DEPENDING ON THE GATE STATE.
+                    if (lockSignals[ships[0].selectedLock][ships[0].comingFrom][ships[0].lockChambers-locksArrived1] == 1) { //PASSAGE AND STOPPAGE BEFORE THE GATES. (if a ship is inside the gate stoppage, if no ships inside passage).
+                        let collisionDistance = calculateDistance(ships[0].lat, ships[0].lon, lockStopCoordinates[ships[0].selectedLock][ships[0].comingFrom][0], lockStopCoordinates[ships[0].selectedLock][ships[0].comingFrom][1]);
+                        let collisionTime = collisionDistance / (ships[0].speed * (1/3600));
+                        if (collisionDistance < 0.5) { //IF THE DISTANCE BETWEEN THE GATE STOP LOCATION AND THE SHIP IS LESS THAN .5km START DECELERATING.               
+                            if (parseFloat(ships[0].speed) > 0) {//COMPARE THE SPEEDS FOR BOTH, AIM FOR LOWERING THE SHIP BEHIND TO BE LOWER THAN THE ONE IN FRONT.
+                                document.getElementById("yellow1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                                document.getElementById("red1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/redOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                                document.getElementById("green1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                                decelerateShip(ships[0], 0, collisionTime/2);
+                            }
+                        }
+                    }
+
+                    /*IF THE SHIP WAS STOPPED DUE TO GATE CLOSED, AND THE GATE OPENED AGAIN.
+                    if (ships[0].speed != initialSpeed1 && lockSignals[ships[0].selectedLock][ships[0].comingFrom][ships[0].lockChambers-locksArrived1] == 0 && lockSignals[ships[0].selectedLock][`${ships[0].comingFrom}_ClosedBy`]  ===  null) {
+                        accelerateShip(ships[0], 7.5, 40);
+                        console.log("Ship 1 accelerated to enter gate. Speed: ", ships[0].speed);
+                    }*/
+                    
+                    if (parseFloat(calculateDistance(newCoord[0], newCoord[1], ships[0].destination[0], ships[0].destination[1]).toFixed(2)) > 0.0) {
+                        map.removeLayer(previousRectangle);
+                        previousRectangle = L.rectangle([[newCoord[0], newCoord[1]], [newCoord[0], newCoord[1]]], { color: 'red', opacity: 0.7, weight: 8 }).addTo(map);
+                    }                        
+                    else {
+                        ships[0].stopped = true;
+                        lockSignals[ships[0].selectedLock][ships[0].comingFrom][ships[0].lockChambers-locksArrived1] = 1;
+                        lockSignals[ships[0].selectedLock][`${ships[0].comingFrom}_ClosedBy`] = 1; //Ship number 1 locks this gate.
+                        locksArrived1--;
+                        document.getElementById("yellow1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/yellowOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("red1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("green1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                    } 
+                }
+                else { //IF STOPPED START THE PROCESS OF REMOVING THE SHIP FROM THE GATE.
+                    ships[0].waitUntilGateOpen++;
+                    if (ships[0].waitUntilGateOpen == 20*gateReplay1) {
+                    lockSignals[ships[0].selectedLock][ships[0].comingFrom][gateReplay1-1] = 0;
+                    lockSignals[ships[0].selectedLock][`${ships[0].comingFrom}_ClosedBy`] = null; //Remove the lock by ship number.
+                    ships[0].destination = locksCoordinates[ships[0].selectedLock][ships[0].comingFrom][ships[0].lockChambers-locksArrived1];
+                    ships[0].stopped = false;
+                    gateReplay1++;
+                    document.getElementById("yellow1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                    document.getElementById("red1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                    document.getElementById("green1").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/greenOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                    }
+                }
+                fluctuateSpeed(ships[0]) //pass the ships object and the number of ship.
+                if (ships[0].stopped == false) {
+                document.getElementById("ship1.speed").textContent = ships[0].speed + "km/h"; //UPDATE THE VALUES ON THE SCREEN.
+                document.getElementById("ship1.bearing").textContent = ships[0].bearing + "°"; //UPDATE THE VALUES ON THE SCREEN.
+                document.getElementById("ship1.coor").textContent = `${ships[0].lat + "°"}, ${ships[0].lon + "°"}`; //UPDATE THE VALUES ON THE SCREEN.
+                }
+            }
+            //------------------------------------------SHIP (1) MOVEMENT & CONTROL--------------------------------------------------
+            
+            //------------------------------------------SHIP (2) MOVEMENT & CONTROL--------------------------------------------------
+            if (ships[1]) { //CHECK IF SHIP 2 WAS REGISTERED BY THE USER.
+                if (ships[1].stopped == false) { //CHECK IF SHIP stopped AT DESTINATION.
+
+                    //CREATE SHIP RADAR: DETECT SHIPS AHEAD.
+                    let radarCoordinates = calculateDestinationCoordinates(ships[1].lat, ships[1].lon, ships[1].bearing, 0);
+                    let shipDetected = isObjectInRadar(ships[0] ? ships[0] : null, ships[2] ? ships[2] : null, radarCoordinates[0], radarCoordinates[1], 0.5);
+                    if (shipDetected) {//IF A SHIP IS DETECTED IN THE RADAR.
+                        //START THE DECELERATION PROCESS.
+                        document.getElementById("radar2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/radarActive.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("red2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("yellow2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/yellowOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("green2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        shipWasDetected2 = true;
+
+                        if (ships[1].comingFrom == shipDetected.comingFrom) {
+                            let collisionDistance = calculateDistance(ships[1].lat, ships[1].lon, shipDetected.lat, shipDetected.lon);
+                            let collisionTime = collisionDistance / (ships[1].speed * (1/3600));
+                            let targetSpeed = shipDetected.speed;
+                            if (parseFloat(ships[1].speed) > parseFloat(targetSpeed)) {//COMPARE THE SPEEDS FOR BOTH, AIM FOR LOWERING THE SHIP BEHIND TO BE LOWER THAN THE ONE IN FRONT.
+                                decelerateShip(ships[1], targetSpeed, collisionTime/2);
+                                console.log("decelerated with radar: ", ships[1].speed)}
+                        }
+                    }
+
+                    //SLOW DOWN SHIP WHEN GOING THROUGH THE GATE.
+                    let arrivalStatus = calculateDistance(ships[1].lat, ships[1].lon, lockStopCoordinates[ships[1].selectedLock][ships[1].comingFrom][0], lockStopCoordinates[ships[1].selectedLock][ships[1].comingFrom][1]);
+                    if (arrivalStatus < 0.3) {
+                        decelerateShip(ships[1], 10, 60);
+                        console.log("Decelerated ship at gate arrival. Speed:", ships[1].speed);
+                        document.getElementById("yellow2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/yellowOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("red2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("green2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                    }
+
+                    //ACCELERATE AFTER SHIP IS NOT ON RADAR ANYMORE.            
+                    if (shipWasDetected2 && shipDetected == false && ships[1].comingFrom == shipDetected.comingFrom) { 
+                        accelerateShip(ships[1], initialSpeed2, 40);
+                        console.log("Ship 2 accelerated on clear radar. Speed: ", ships[1].speed);
+                        document.getElementById("radar2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/radarInactive.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("yellow2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("red2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("green2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/greenOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                    }
+
+                    //PASSAGE AND STOPPAGE BEFORE ENTERING GATE, DEPENDING ON THE GATE STATE.
+                    if (lockSignals[ships[1].selectedLock][ships[1].comingFrom][ships[1].lockChambers-locksArrived2] == 1) { //PASSAGE AND STOPPAGE BEFORE THE GATES. (if a ship is inside the gate stoppage, if no ships inside passage).
+                        let collisionDistance = calculateDistance(ships[1].lat, ships[1].lon, lockStopCoordinates[ships[1].selectedLock][ships[1].comingFrom][0], lockStopCoordinates[ships[1].selectedLock][ships[1].comingFrom][1]);
+                        let collisionTime = collisionDistance / (ships[1].speed * (1/3600));
+                        if (collisionDistance < 0.5) { //IF THE DISTANCE BETWEEN THE GATE STOP LOCATION AND THE SHIP IS LESS THAN .5km START DECELERATING.               
+                            if (parseFloat(ships[1].speed) > 0) {//COMPARE THE SPEEDS FOR BOTH, AIM FOR LOWERING THE SHIP BEHIND TO BE LOWER THAN THE ONE IN FRONT.
+                                decelerateShip(ships[1], 0, collisionTime/2);
+                                document.getElementById("yellow2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                                document.getElementById("red2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/redOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                                document.getElementById("green2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                            }
+                        }
+                    }
+
+                    if (parseFloat(calculateDistance(newCoord2[0], newCoord2[1], ships[1].destination[0], ships[1].destination[1]).toFixed(2)) > 0.0) {
+                        map.removeLayer(previousRectangle2);
+                        previousRectangle2 = L.rectangle([[newCoord2[0], newCoord2[1]], [newCoord2[0], newCoord2[1]]], { color: 'blue', opacity: 0.7, weight: 8 }).addTo(map);}
+                    else { //IF SHIP stopped UPDATE stopped PROPERTY OF SHIP CLASS.
+                        ships[1].stopped = true;
+                        lockSignals[ships[1].selectedLock][ships[1].comingFrom][ships[1].lockChambers-locksArrived2] = 1;
+                        lockSignals[ships[1].selectedLock][`${ships[1].comingFrom}_ClosedBy`] = 1; //Ship number 1 locks this gate.
+                        locksArrived2--; 
+                        document.getElementById("yellow2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/yellowOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("red2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("green2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                    } 
+                }
+                else { //HEAD TO THE NEXT DESTINATION GATE.
+                    ships[1].waitUntilGateOpen++;
+                    if (ships[1].waitUntilGateOpen == 20*gateReplay2) {
+                        lockSignals[ships[1].selectedLock][ships[1].comingFrom][gateReplay2-1] = 0;
+                        lockSignals[ships[1].selectedLock][`${ships[1].comingFrom}_ClosedBy`] = null; //Remove the lock by ship number.
+                        ships[1].destination = locksCoordinates[ships[1].selectedLock][ships[1].comingFrom][ships[1].lockChambers-locksArrived2];
+                        ships[1].stopped = false;
+                        gateReplay2++
+                        document.getElementById("yellow2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("red2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("green2").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/greenOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                    }
+                }
+                fluctuateSpeed(ships[1]) //pass the ships object and the number of ship.
+                if (ships[1].stopped == false) {
+                document.getElementById("ship2.speed").textContent = ships[1].speed + "km/h"; //UPDATE THE VALUES ON THE SCREEN.
+                document.getElementById("ship2.bearing").textContent = ships[1].bearing + "°"; //UPDATE THE VALUES ON THE SCREEN.
+                document.getElementById("ship2.coor").textContent = `${ships[1].lat + "°"}, ${ships[1].lon + "°"}`; //UPDATE THE VALUES ON THE SCREEN.
+                }
+            }
+            //------------------------------------------SHIP (2) MOVEMENT & CONTROL--------------------------------------------------
+            
+            //------------------------------------------SHIP (3) MOVEMENT & CONTROL--------------------------------------------------
+            if (ships[2]) { //CHECK IF SHIP 3 WAS REGISTERED BY THE USER.
+                if (ships[2].stopped == false) {
+
+                    //CREATE SHIP RADAR: DETECT SHIPS AHEAD.
+                    let radarCoordinates = calculateDestinationCoordinates(ships[2].lat, ships[2].lon, ships[2].bearing, 0);
+                    let shipDetected = isObjectInRadar(ships[0] ? ships[0] : null, ships[1] ? ships[1] : null, radarCoordinates[0], radarCoordinates[1], 0.5);
+                    if (shipDetected) {//IF A SHIP IS DETECTED IN THE RADAR.
+                        //START THE DECELERATION PROCESS.
+                        document.getElementById("radar3").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/radarActive.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("red3").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/redOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("yellow3").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("green3").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        shipWasDetected3 = true;
+
+                        if (ships[2].comingFrom == shipDetected.comingFrom) {
+                            let collisionDistance = calculateDistance(ships[2].lat, ships[2].lon, shipDetected.lat, shipDetected.lon);
+                            let collisionTime = collisionDistance / (ships[2].speed * (1/3600));
+                            let targetSpeed = shipDetected.speed;
+                            if (parseFloat(ships[2].speed) > parseFloat(targetSpeed)) {//COMPARE THE SPEEDS FOR BOTH, AIM FOR LOWERING THE SHIP BEHIND TO BE LOWER THAN THE ONE IN FRONT.
+                                decelerateShip(ships[2], targetSpeed, collisionTime/2);
+                                console.log("decelearted with radar: ", ships[2].speed)}
+                        }
+                    }
+
+                    //SLOW DOWN SHIP WHEN GOING THROUGH THE GATE.
+                    let arrivalStatus = calculateDistance(ships[2].lat, ships[2].lon, lockStopCoordinates[ships[2].selectedLock][ships[2].comingFrom][0], lockStopCoordinates[ships[2].selectedLock][ships[2].comingFrom][1]);
+                    if (arrivalStatus < 0.3) {
+                        decelerateShip(ships[2], 10, 60);
+                        console.log("Decelerated ship at gate arrival. Speed:", ships[2].speed);
+                        document.getElementById("yellow3").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/yellowOn.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("red3").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                        document.getElementById("green3").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/off.png"; //UPDATE THE VALUES ON THE SCREEN.
+                    }
+
+                    //ACCELERATE AFTER SHIP IS NOT ON RADAR ANYMORE.            
+                    if (shipWasDetected3 && shipDetected == false && ships[2].comingFrom == shipDetected.comingFrom) { 
+                        accelerateShip(ships[2], initialSpeed3, 40);
+                        console.log("Ship 3 accelerated on clear radar. Speed: ", ships[2].speed);
+                        document.getElementById("radar3").src = "file:///C:/Users/samho/OneDrive/Desktop/WRO/items/radarInactive.png"; //UPDATE THE VALUES ON THE SCREEN.
+                    }
+
+                    //PASSAGE AND STOPPAGE BEFORE ENTERING GATE, DEPENDING ON THE GATE STATE.
+                    if (lockSignals[ships[2].selectedLock][ships[2].comingFrom][ships[2].lockChambers-locksArrived3] == 1) { //PASSAGE AND STOPPAGE BEFORE THE GATES. (if a ship is inside the gate stoppage, if no ships inside passage).
+                        let collisionDistance = calculateDistance(ships[2].lat, ships[2].lon, lockStopCoordinates[ships[2].selectedLock][ships[2].comingFrom][0], lockStopCoordinates[ships[2].selectedLock][ships[2].comingFrom][1]);
+                        let collisionTime = collisionDistance / (ships[2].speed * (1/3600));
+                        if (collisionDistance < 0.5) { //IF THE DISTANCE BETWEEN THE GATE STOP LOCATION AND THE SHIP IS LESS THAN .5km START DECELERATING.               
+                            if (parseFloat(ships[2].speed) > 0) {//COMPARE THE SPEEDS FOR BOTH, AIM FOR LOWERING THE SHIP BEHIND TO BE LOWER THAN THE ONE IN FRONT.
+                                decelerateShip(ships[2], 0, collisionTime/2);
+                            }
+                        }
+                    }
+
+                    //CONTINUE WITH SHIP MOVEMENT AND UPDATING POSITON.
+                    if (parseFloat(calculateDistance(newCoord3[0], newCoord3[1], ships[2].destination[0], ships[2].destination[1]).toFixed(2)) > 0.0) {
+                        map.removeLayer(previousRectangle3);
+                        previousRectangle3 = L.rectangle([[newCoord3[0], newCoord3[1]], [newCoord3[0], newCoord3[1]]], { color: 'green', opacity: 0.7, weight: 8 }).addTo(map);}
+                    else {
+                        ships[2].stopped = true;
+                        lockSignals[ships[2].selectedLock][ships[2].comingFrom][ships[2].lockChambers-locksArrived3] = 1;
+                        lockSignals[ships[2].selectedLock][`${ships[2].comingFrom}_ClosedBy`] = 2; //Ship number 2 locks this gate.
+                        locksArrived3--; 
+                    }
+                }
+                else { //HEAD TO THE NEXT DESTINATION GATE.
+                    ships[2].waitUntilGateOpen++;
+                    if (ships[2].waitUntilGateOpen == 20*gateReplay3) {
+                        lockSignals[ships[2].selectedLock][ships[2].comingFrom][gateReplay3-1] = 0;
+                        lockSignals[ships[2].selectedLock][`${ships[2].comingFrom}_ClosedBy`] = null; //Remove the lock by ship mumber.
+                        ships[2].destination = locksCoordinates[ships[2].selectedLock][ships[2].comingFrom][ships[2].lockChambers-locksArrived3];
+                        ships[2].stopped = false;
+                        gateReplay3++
+                    }
+                }
+                fluctuateSpeed(ships[2]) //pass the ships object and the number of ship.
+                if (ships[2].stopped == false) {
+                document.getElementById("ship3.speed").textContent = ships[2].speed + "km/h"; //UPDATE THE VALUES ON THE SCREEN.
+                document.getElementById("ship3.bearing").textContent = ships[2].bearing + "°"; //UPDATE THE VALUES ON THE SCREEN.
+                document.getElementById("ship3.coor").textContent = `${ships[2].lat  + "°"}, ${ships[2].lon  + "°"}`; //UPDATE THE VALUES ON THE SCREEN.
+                }
+            }
+            //------------------------------------------SHIP (3) MOVEMENT & CONTROL--------------------------------------------------
+        }
+    }
+}
+
+const trafficControl = new TrafficControlSystem(5);
+for (i = 0; i < 1; i++) {
+    trafficControl.addShip(ships[i]);
+}
+trafficControl.start(); //Start simulation.
+   </script>
+</body>
+</html>
